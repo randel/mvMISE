@@ -1,0 +1,6 @@
+export(mvmise_b)
+export(mvmise_e)
+import(lme4)
+importFrom(stats,coef)
+importFrom(stats,glm)
+importFrom(stats,poisson)
