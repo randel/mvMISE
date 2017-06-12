@@ -1,21 +1,25 @@
-Package: mvmise
-Title: A General Framework for Multivariate Mixed-Effects Selection Models with
-    Potential Missing Data
+Package: mvMISE
+Title: A General Framework of Multivariate Mixed-Effects Selection Models
 Version: 1.0
-Date: 2017-06-01
+Date: 2017-06-06
 Author: Jiebiao Wang and Lin S. Chen
 Maintainer: Jiebiao Wang <randel.wang@gmail.com>
-Description: It offers a general framework for multivariate mixed-effects models
-    with potential missing data in the outcome. The missingness can depend on the outcome (missing
-    not at random), the covariate of interest (missing at random), or both. The
-    multiple outcome variables can have correlated outcome-specific random effects
-    with a factor-analytic structure, or correlated outcome-specific error terms
-    subject to a graphical lasso penalty. Although it is designed for multivariate
-    clustered data with missing values, it can also work for univariate clustered
-    data, and fully observed data.
+Description: This package offers a general framework of multivariate mixed-effects
+        models for the joint analysis of multiple correlated outcomes with clustered 
+        data structure and potential missingness. The missing outcome values may 
+        depend on the values themselves (missing not at random and non-ignorable), 
+        or may depend on only the covariates (missing at random and ignorable), or both.
+        This package provides functions for two models: 1) the mvMISE_b model that 
+        allows correlated outcome-specific random intercepts with a factor-analytic 
+        structure, and 2) the mvMISE_e model that allows the correlated outcome-specific 
+        error terms with L1 regularization on the error precision matrix. Both functions 
+        are motivated by the multivariate data analyses on data with clustered structure 
+        from labelling-based quantitative proteomic studies. Those models and functions 
+        can also be applied to univariate and multivariate analyses of clustered data 
+        with balanced or unbalanced design and no missingness.
 License: GPL
 Depends:
     lme4
-URL: https://github.com/randel/mvmise
-BugReports: https://github.com/randel/mvmise/issues
-RoxygenNote: 5.0.1
+URL: https://github.com/randel/mvMISE
+BugReports: https://github.com/randel/mvMISE/issues
+RoxygenNote: 6.0.1
