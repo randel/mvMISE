@@ -2,6 +2,7 @@
 #' 
 #' This function fits a multivariate mixed-effects selection model with correlated outcome-specific
 #' random intercepts allowing potential ignorable or non-ignorable missing values in the outcome.
+#' Here an outcome refers to a response variable, for example, a genomic feature. The proposed model and function jointly analyze multiple outcomes/features.
 #' 
 #' The multivariate mixed-effects selection model consists of two components, the outcome model and the missing-data model. Here the outcome model 
 #' is a multivariate mixed-effects model, with correlations among multivariate outcomes modeled via correlated outcome-specific random intercepts with 

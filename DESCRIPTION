@@ -4,7 +4,7 @@ Version: 1.0
 Date: 2017-06-06
 Author: Jiebiao Wang and Lin S. Chen
 Maintainer: Jiebiao Wang <randel.wang@gmail.com>
-Description: This package offers a general framework of multivariate mixed-effects
+Description: Offers a general framework of multivariate mixed-effects
         models for the joint analysis of multiple correlated outcomes with clustered 
         data structure and potential missingness. The missing outcome values may 
         depend on the values themselves (missing not at random and non-ignorable), 
