@@ -1,14 +1,16 @@
 #' A multivariate mixed-effects selection model with correlated outcome-specific error terms
 #' 
 #' This function fits a multivariate mixed-effects selection model with correlated outcome-specific error terms and potential missing values in the outcome.
+#' Here an outcome refers to a response variable, for example, a genomic feature. The proposed model and function jointly analyze multiple outcomes/features.
 #' For high-dimensional outcomes, the model can regularize the estimation by shrinking the error precision matrix with a graphical lasso penalty.
+#' Given the penalty, we do not offer p-values for testing for mvMISE_e. Please use mvMISE_e_perm to obtain the permutation-based p-values.
 #' 
 #' The multivariate mixed-effects selection model consists of two components, the outcome model and the missing-data model. Here the outcome model 
 #' is a multivariate mixed-effects model. The correlations among multivariate outcomes are modeled via outcome-specific error terms with an unstructured covariance matrix. 
 #' For the i-th cluster, the outcome matrix \eqn{\mathbf{Y}_{i}} is a matrix of \eqn{n_i} samples (rows) and \eqn{K} outcomes (columns). 
 #' Let \eqn{\mathbf{y}_{i} = \mathrm{vec}\left( \mathbf{Y}_{i} \right)}. 
 #' The outcome vector \eqn{\mathbf{y}_{i}} can be modelled as
-#' \deqn{\mathbf{y}_{i}  = \mathbf{X}_{i}\boldsymbol{\alpha}+\mathbf{Z}_{i}\mathbf{b}_{i}+\mathbf{e}_{i},}
+#' \deqn{\mathbf{y}_{i}  = \mathbf{X}_{i}\boldsymbol{\beta}+\mathbf{Z}_{i}\mathbf{b}_{i}+\mathbf{e}_{i},}
 #' where the random effects (\eqn{\mathbf{b}_{i}}) follow a normal distribution \eqn{\mathbf{b}_{i}\sim N(\mathbf{0},\mathbf{D})}; 
 #' and the error term \eqn{\mathbf{e}_{i}=\mathrm{vec}\left(\mathbf{E}_{i}\right) \sim N(\mathbf{0},\boldsymbol{\Sigma}\otimes\mathbf{S}_{i})}.  
 #' The matrix \eqn{\mathbf{S}_{i}} is an \eqn{n_i\times n_i} diagonal matrix with diagonal elements corresponding to the error variances of the \eqn{n_i} samples 
@@ -25,11 +27,11 @@
 #' \phi_{2}/n_{i}\cdot \mathbf{1}^{'}\mathbf{c}_{i} \right),}
 #' where \eqn{r_{ik}} is the missing indicator for the k-th outcome in the i-th cluster. If missing \eqn{r_{ik}=1}, the k-th outcome in the i-th cluster \eqn{\mathbf{y}_{ik}} 
 #' is missing altogether.
-#' The estimation is implemented within an EM algorithm framework. Parameters in the missing-data models can be specified via the arguments mnar and cov_miss. If mnar 
+#' The estimation is implemented within an EM algorithm framework. Parameters in the missing-data models can be specified via the arguments miss_y and cov_miss. If miss_y 
 #' = TURE, i.e., the missing-data mechanism is missing not at random (MNAR), the missingness depends on the outcome values. 
 #' If cov_miss is specified, the missingness can (additionally) depend on the specified covariates (cov_miss).
 #' 
-#' The model also works for fully observed data if mnar = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
+#' The model also works for fully observed data if miss_y = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
 #' with one column.
 #' 
 #' @param Y an outcome matrix. Each row is a sample, and each column is an outcome variable, with potential missing values (NAs).
@@ -49,26 +51,25 @@
 #' @param lambda the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output).
 #' @param tol the tolerance level for the relative change in the observed-data log-likelihood function.
 #' @param verbose logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.
-#' @param mnar logical. If TRUE, the missing-data mechanism is missing not at random (MNAR), and the missingness depends on the outcome (see the Details). The default is TRUE.
+#' @param miss_y logical. If TRUE, the missingness depends on the outcome y (see the Details). The default is TRUE.
+#'      This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.  
 #' @param cov_miss the covariate that can be used in the missing-data model. If it is NULL, 
-#' the missingness is assumed to be independent of the covariates.
-#' Check the Details for the missing-data model.
-#' If it is specified and the covariate is not outcome specific, its length equals the length of id. If it is outcome specific, the outcome-specific covariate is stacked across outcomes within
-#' each cluster.
+#'    the missingness is assumed to be independent of the covariates.
+#'   Check the Details for the missing-data model.
+#'   If it is specified and the covariate is not outcome specific, its length equals the length of id. If it is outcome specific, the outcome-specific covariate is stacked across outcomes within
+#'   each cluster.
 #' @param sigma_diff logical. If TRUE, the sample error variance of the first sample is different from that for the rest of samples within each cluster.
 #' This option is designed and used when analyzing batch-processed proteomics data with the first sample in each cluster/batch being the common reference sample. The default is FALSE.
 
 #' @return A list containing
 #' \item{beta}{the estimated fixed-effects.}
-#' \item{pval}{the parametric p-values for testing non-zero fixed-effects. It is obtained as the two-sided p-value based on the Wald statistics.
-#' We recommend to obtain the permutation-based p-values by following the Examples.}
-#' \item{stat}{the parametric Wald statistics for testing non-zero fixed-effects.}
+#' \item{stat}{the parametric Wald statistics for testing non-zero fixed-effects. It is used in permutation tests.}
 #' \item{Sigma}{the estimated error covariance matrix for the outcomes.}
 #' \item{sigma2}{the estimated sample error variance(s). If sigma_diff is TRUE, it returns a vector of two elements,
 #'  the variances for the first sample and the rest of samples within each cluster.}
 #' \item{D}{the estimated covariance matrix for the random-effects.}
 #' \item{phi}{the estimated parameters for the missing-data mechanism. Check the Details for the missing-data model. 
-#' A zero value implies that parameter is ignored via the specification of mnar and cov_miss.}
+#' A zero value implies that parameter is ignored via the specification of miss_y and cov_miss.}
 #' \item{loglikelihood}{the observed-data log-likelihood values.}
 #' \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 #' \item{AIC}{The Akaike information criterion (AIC) calculated for selecting the tuning parameter lambda of the graphical lasso penalty.}
@@ -81,37 +82,40 @@
 #' @importFrom stats coef glm poisson pnorm
 #' @examples
 #' data(sim_dat)
+#' 
+#' # Covariates X common across outcomes with common coefficients
 #'
-#' fit0 = mvMISE_e(Y=sim_dat$Y, X=sim_dat$X, id=sim_dat$id)
+#' fit0 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id)
 #' 
 #' \dontrun{
 #' 
-#' ## An example to obtain permutation-based p-values for fixed effects
-#' 
-#' # it may take a long time, but it can be run in parallel through packages like foreach
-#' 
-#' nperm = 50
-#' 
-#' stat0 = sapply(1:nperm, function(x) mvMISE_e(Y=sim_dat$Y, X=sim_dat$X[sample(nrow(sim_dat$X)),], id=sim_dat$id)$stat)
-#' 
-#' pval_perm = sapply(1:length(fit0$stat), function(x) mean(abs(stat0[x,]) >= abs(fit0$stat[x])))
-#' 
-#' 
-#' ## An example to allow outcome-specific effects for the last covariate in X
+
+#' # A common covariate but outcome-specific coefficients
 #' 
 #' nY = ncol(sim_dat$Y)
 #' # stack X across outcomes
 #' X_mat = sim_dat$X[rep(1:nrow(sim_dat$X), nY), ]
 #' Y_ind = kronecker(diag(nY), rep(1, nrow(sim_dat$Y)))
 #' X_mat = cbind(X_mat[, - ncol(X_mat)], X_mat[, ncol(X_mat)] * Y_ind)
+#'
+#' fit1 = mvMISE_e(Y = sim_dat$Y, X = X_mat, id = sim_dat$id)
 #' 
-#' fit1 = mvMISE_e(Y=sim_dat$Y, X=X_mat, id=sim_dat$id)
+#' # A covariate only specific to the first outcome
+#' 
+#' X_mat1 = X_mat[, 1:2]
+#' 
+#' fit2 = mvMISE_e(Y=sim_dat$Y, X=X_mat1, id=sim_dat$id)
+#' 
+#' 
+#' ## An example to allow missingness to depend on both a covariate and the outcome
+#' 
+#' fit3 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id, cov_miss = sim_dat$X[,2])
 #' 
 #' }
 
 
-mvMISE_e = function(Y, X, Zidx = 1, id, maxIter = 100, tol = 0.001, lambda = 0.05, 
-                    admm = TRUE, verbose = FALSE, cov_miss = NULL, mnar = TRUE,
+mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.05, 
+                    admm = TRUE, verbose = FALSE, cov_miss = NULL, miss_y = TRUE,
                     sigma_diff = FALSE) {
   
   N = length(unique(id))  # no. clusters
@@ -280,21 +284,21 @@ mvMISE_e = function(Y, X, Zidx = 1, id, maxIter = 100, tol = 0.001, lambda = 0.0
     
     # phi's: Poisson working model (Lumley et al., 2006, http://biostats.bepress.com/uwbiostat/paper293/)
     
-    if (mnar & is.null(cov_miss)) {
+    if (miss_y & is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ as.vector(t(Y_ik_mean)), family = poisson(link = "log"))
       # phi's index to be updated
       phi_idx = -3
     }
-    if (!mnar & !is.null(cov_miss)) {
+    if (!miss_y & !is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ cov_mean_rep, family = poisson(link = "log"))
       phi_idx = -2
     }
-    if (mnar & !is.null(cov_miss)) {
+    if (miss_y & !is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ as.vector(t(Y_ik_mean)) + cov_mean_rep, family = poisson(link = "log"))
       phi_idx = 1:3
     }
     # make the algorithm stable
-    if (mnar | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
+    if (miss_y | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
 
     
     D_old = D
@@ -376,7 +380,7 @@ mvMISE_e = function(Y, X, Zidx = 1, id, maxIter = 100, tol = 0.001, lambda = 0.0
   ## standard errors for fixed-effects
   se = sqrt(diag(solve(SE)))
   
-  return(list(iter = iter, beta = beta, stat = beta/se, pval = 2*pnorm(-abs(beta/se)), sigma2 = sigma2, 
+  return(list(iter = iter, beta = beta, stat = beta/se, sigma2 = sigma2, 
               Sigma = Sigma, D = D, phi = phi, AIC = AIC, loglikelihood = obs_likelihood))
 }
 
