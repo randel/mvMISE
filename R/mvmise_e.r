@@ -3,7 +3,8 @@
 #' This function fits a multivariate mixed-effects selection model with correlated outcome-specific error terms and potential missing values in the outcome.
 #' Here an outcome refers to a response variable, for example, a genomic feature. The proposed model and function jointly analyze multiple outcomes/features.
 #' For high-dimensional outcomes, the model can regularize the estimation by shrinking the error precision matrix with a graphical lasso penalty.
-#' Given the penalty, we do not offer p-values for testing for mvMISE_e. Please use mvMISE_e_perm to obtain the permutation-based p-values.
+#' Given the introduction of the penalty and the choice of tuning parameter often being data-dependant, we recommend using permutation to calculate
+#' p-values for testing with the mvMISE_e model. Please see mvMISE_e_perm for calculating the permutation-based p-values.
 #' 
 #' The multivariate mixed-effects selection model consists of two components, the outcome model and the missing-data model. Here the outcome model 
 #' is a multivariate mixed-effects model. The correlations among multivariate outcomes are modeled via outcome-specific error terms with an unstructured covariance matrix. 
@@ -28,7 +29,7 @@
 #' where \eqn{r_{ik}} is the missing indicator for the k-th outcome in the i-th cluster. If missing \eqn{r_{ik}=1}, the k-th outcome in the i-th cluster \eqn{\mathbf{y}_{ik}} 
 #' is missing altogether.
 #' The estimation is implemented within an EM algorithm framework. Parameters in the missing-data models can be specified via the arguments miss_y and cov_miss. If miss_y 
-#' = TURE, i.e., the missing-data mechanism is missing not at random (MNAR), the missingness depends on the outcome values. 
+#' = TURE, the missingness depends on the outcome values. 
 #' If cov_miss is specified, the missingness can (additionally) depend on the specified covariates (cov_miss).
 #' 
 #' The model also works for fully observed data if miss_y = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
@@ -39,10 +40,10 @@
 #'    If a covariate is specific for the k-th outcome, one may set all the values corresponding to the other outcomes to be zero. If X is common across outcomes, the row number of X equals 
 #'    the row number of Y. Otherwise if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes within
 #'    each cluster. See the Examples for demonstration.
+#' @param id a vector for cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.
 #' @param Zidx the column indices of matrix X used as the design matrix of random effects. The default is 1, i.e., a random intercept is included 
 #' if the first column of X is a vector of 1s. If Zidx=c(1,2), then the model would estimate the random intercept and the random effects of the 2nd column in the covariate matrix X.
 #' The random-effects in this model are assumed to be independent.
-#' @param id a vector for cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.
 #' @param maxIter the maximum number of iterations for the EM algorithm.
 #' @param admm logical. If TRUE (the default), we impose a L1 graphical lasso penalty on the error precision (inverse of covariance) matrix, and the alternating direction method of multipliers (ADMM) is 
 #' used to estimate the error precision and the error covariance matrix. If FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
@@ -51,7 +52,7 @@
 #' @param lambda the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output).
 #' @param tol the tolerance level for the relative change in the observed-data log-likelihood function.
 #' @param verbose logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.
-#' @param miss_y logical. If TRUE, the missingness depends on the outcome y (see the Details). The default is TRUE.
+#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE.
 #'      This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.  
 #' @param cov_miss the covariate that can be used in the missing-data model. If it is NULL, 
 #'    the missingness is assumed to be independent of the covariates.
@@ -89,16 +90,25 @@
 #' 
 #' \dontrun{
 #' 
-
-#' # A common covariate but outcome-specific coefficients
+#' # In the example below, we showed how to estimate outcome-specific coefficients
+#' # for a common covariate. The second column of sim_dat$X matrix is a
+#' # common covariate. But it has different effects/coefficients
+#' # on different outcomes.
 #' 
 #' nY = ncol(sim_dat$Y)
 #' # stack X across outcomes
 #' X_mat = sim_dat$X[rep(1:nrow(sim_dat$X), nY), ]
+#' # Y_ind is the indicator matrix corresponding to different outcomes
 #' Y_ind = kronecker(diag(nY), rep(1, nrow(sim_dat$Y)))
-#' X_mat = cbind(X_mat[, - ncol(X_mat)], X_mat[, ncol(X_mat)] * Y_ind)
+#' # generate outcome-specific covariates
+#' cidx = 2 # the index for the covariate with outcome-specific coefficient
+#' X_mat = cbind(1, X_mat[, cidx] * Y_ind) 
+#' 
+#' # X_mat is a matrix of 460 (92*5) by 6, the first column is intercept and the
+#' # next 5 columns are covariate for each outcome
 #'
-#' fit1 = mvMISE_e(Y = sim_dat$Y, X = X_mat, id = sim_dat$id)
+#' fit1 = mvMISE_e(Y=sim_dat$Y, X=X_mat, id=sim_dat$id)
+#' 
 #' 
 #' # A covariate only specific to the first outcome
 #' 

@@ -7,7 +7,7 @@
 #' The multivariate mixed-effects selection model consists of two components, the outcome model and the missing-data model. Here the outcome model 
 #' is a multivariate mixed-effects model, with correlations among multivariate outcomes modeled via correlated outcome-specific random intercepts with 
 #' a factor-analytic structure
-#' \deqn{\mathbf{y}_{i} =  \mathbf{X}_{i}\boldsymbol{\alpha} + \left(\mathbf{I}_{K}\otimes\mathbf{1}_{n_{i}}\right) \boldsymbol{\tau}b_{i}+\mathbf{e}_{i},}
+#' \deqn{\mathbf{y}_{i} =  \mathbf{X}_{i}\boldsymbol{\beta} + \left(\mathbf{I}_{K}\otimes\mathbf{1}_{n_{i}}\right) \boldsymbol{\tau}b_{i}+\mathbf{e}_{i},}
 #' where \eqn{i} denotes a cluster/batch, \eqn{n_{i}} is the number of samples/observations within each cluster,
 #'  \eqn{\boldsymbol{\tau}} is a \eqn{K\times 1} vector for the outcome-specific variance components corresponding to 
 #' the random effect \eqn{b_i} (a standard normal random variable), and \eqn{K} is the number of outcomes. 
@@ -25,23 +25,25 @@
 #' \phi_{2}/n_{i}\cdot \mathbf{1}^{'}\mathbf{c}_{i} \right),}
 #' where \eqn{r_{ik}} is the missing indicator for the k-th outcome in the i-th cluster. If \eqn{r_{ik}=1}, the values of the k-th outcome in the i-th cluster  
 #' \eqn{\mathbf{y}_{ik}} are missing altogether.
-#' The estimation is implemented via an EM algorithm. Parameters in the missing-data models can be specified via the arguments mnar and cov_miss. If mnar 
-#' = TURE, i.e., the missing-data mechanism is missing not at random (MNAR), the missingness depends on the outcome values. 
+#' The estimation is implemented via an EM algorithm. Parameters in the missing-data models can be specified via the arguments miss_y and cov_miss. If miss_y 
+#' = TURE, the missingness depends on the outcome values. 
 #' If cov_miss is specified, the missingness can (additionally) depend on the specified covariate (cov_miss).
 #' 
-#' The model also works for fully observed data if mnar = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
+#' The model also works for fully observed data if miss_y = FALSE and cov_miss = NULL. It would also work for a univariate outcome with potential missing values, if the outcome Y is a matrix
 #' with one column.
 #' 
 #' @param Y an outcome matrix. Each row is a sample, and each column is an outcome variable, with potential missing values (NAs).
 #' @param X a covariate matrix. Each row is a sample, and each column is a covariate. The covariates can be common among all of the outcomes (e.g., age, gender) or outcome-specific.
-#'    If a covariate is specific for the k-th outcome, one may set all the values corresponding to the other outcomes to be zero. If X is common across outcomes, the row number of X equals 
-#'    the row number of Y. Otherwise if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes within
+#'    If a covariate is specific for the k-th outcome, one may set all the values corresponding to the other outcomes to be zero. 
+#'    If X is common across outcomes, the row number of X equals 
+#'    the row number of Y. Otherwise, if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes within
 #'    each cluster. See the Examples for demonstration.
 #' @param id a vector of cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.
 #' @param maxIter the maximum number of iterations for the EM algorithm.
 #' @param tol the tolerance level for the relative change in the observed-data log-likelihood function.
 #' @param verbose logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.
-#' @param mnar logical. If TRUE, the missing-data mechanism is missing not at random (MNAR), and the missingness depends on the outcome (see the Details). The default is TRUE.
+#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE.
+#'      This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.  
 #' @param cov_miss the covariate that can be used in the missing-data model. If it is NULL, 
 #' the missingness is assumed to be independent of the covariates. 
 #' Check the Details for the missing-data model.
@@ -59,7 +61,7 @@
 #'  the variances for the first sample and for the rest of samples within each cluster.}
 #' \item{tau}{the estimated variance components for the outcome-specific factor-analytic random-effects.}
 #' \item{phi}{the estimated parameters for the missing-data mechanism. Check the Details for the missing-data model.
-#'  A zero estimate implies that the parameter is ignored via the specification of mnar and/or cov_miss.}
+#'  A zero estimate implies that the parameter is ignored via the specification of miss_y and/or cov_miss.}
 #' \item{loglikelihood}{the observed-data log-likelihood values.}
 #' \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 #' 
@@ -71,26 +73,48 @@
 #' @importFrom stats coef glm poisson pnorm
 #' @examples
 #' data(sim_dat)
+#' 
+#' # Covariates X common across outcomes with common coefficients
 #'
 #' fit0 = mvMISE_b(Y=sim_dat$Y, X=sim_dat$X, id=sim_dat$id)
 #' 
 #' \dontrun{
 #' 
-#' ## An example to allow outcome-specific effects for the last covariate in X
+#' # In the example below, we showed how to estimate outcome-specific coefficients
+#' # for a common covariate. The second column of sim_dat$X matrix is a
+#' # common covariate. But it has different effects/coefficients
+#' # on different outcomes.
 #' 
 #' nY = ncol(sim_dat$Y)
 #' # stack X across outcomes
 #' X_mat = sim_dat$X[rep(1:nrow(sim_dat$X), nY), ]
+#' # Y_ind is the indicator matrix corresponding to different outcomes
 #' Y_ind = kronecker(diag(nY), rep(1, nrow(sim_dat$Y)))
 #' # generate outcome-specific covariates
-#' X_mat = cbind(X_mat[, - ncol(X_mat)], X_mat[, ncol(X_mat)] * Y_ind)
+#' cidx = 2 # the index for the covariate with outcome-specific coefficient
+#' X_mat = cbind(1, X_mat[, cidx] * Y_ind) 
 #' 
+#' # X_mat is a matrix of 460 (92*5) by 6, the first column is intercept and the
+#' # next 5 columns are covariate for each outcome
+#'
 #' fit1 = mvMISE_b(Y=sim_dat$Y, X=X_mat, id=sim_dat$id)
+#' 
+#' 
+#' # A covariate only specific to the first outcome
+#' 
+#' X_mat1 = X_mat[, 1:2]
+#' 
+#' fit2 = mvMISE_b(Y=sim_dat$Y, X=X_mat1, id=sim_dat$id)
+#' 
+#' 
+#' ## An example that allows missingness depending on both a covariate and the outcome
+#' 
+#' fit3 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id, cov_miss = sim_dat$X[,2])
 #' 
 #' }
 
 
-mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_miss = NULL, mnar = TRUE,
+mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_miss = NULL, miss_y = TRUE,
                     sigma_diff = FALSE) {
   
   N = length(unique(id))  # no. clusters
@@ -261,21 +285,21 @@ mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_
     ## M step
     
     # phi's: Poisson working model (Lumley et al., 2006, http://biostats.bepress.com/uwbiostat/paper293/)
-    if (mnar & is.null(cov_miss)) {
+    if (miss_y & is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ as.vector(t(Y_ik_mean)), family = poisson(link = "log"))
       # phi's index to be updated
       phi_idx = -3
     }
-    if (!mnar & !is.null(cov_miss)) {
+    if (!miss_y & !is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ cov_mean_rep, family = poisson(link = "log"))
       phi_idx = -2
     }
-    if (mnar & !is.null(cov_miss)) {
+    if (miss_y & !is.null(cov_miss)) {
       mylog <- glm(miss_cluster ~ as.vector(t(Y_ik_mean)) + cov_mean_rep, family = poisson(link = "log"))
       phi_idx = 1:3
     }
     # make the algorithm stable
-    if (mnar | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
+    if (miss_y | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
     
     beta = solve(XRX) %*% XRE
     tau = solve(ZRZ) %*% ZRE

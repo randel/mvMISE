@@ -2,7 +2,11 @@
 
 export(mvMISE_b)
 export(mvMISE_e)
+export(mvMISE_e_perm)
 import(lme4)
+importFrom(parallel,makeCluster)
+importFrom(parallel,parLapply)
+importFrom(parallel,stopCluster)
 importFrom(stats,coef)
 importFrom(stats,glm)
 importFrom(stats,pnorm)

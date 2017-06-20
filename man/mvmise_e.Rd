@@ -4,8 +4,8 @@
 \alias{mvMISE_e}
 \title{A multivariate mixed-effects selection model with correlated outcome-specific error terms}
 \usage{
-mvMISE_e(Y, X, Zidx = 1, id, maxIter = 100, tol = 0.001, lambda = 0.05, admm = TRUE, 
-    verbose = FALSE, cov_miss = NULL, mnar = TRUE, sigma_diff = FALSE)
+mvMISE_e(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.05, admm = TRUE, 
+    verbose = FALSE, cov_miss = NULL, miss_y = TRUE, sigma_diff = FALSE)
 }
 \arguments{
 \item{Y}{an outcome matrix. Each row is a sample, and each column is an outcome variable, with potential missing values (NAs).}
@@ -15,11 +15,11 @@ If a covariate is specific for the k-th outcome, one may set all the values corr
 the row number of Y. Otherwise if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes within
 each cluster. See the Examples for demonstration.}
 
+\item{id}{a vector for cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.}
+
 \item{Zidx}{the column indices of matrix X used as the design matrix of random effects. The default is 1, i.e., a random intercept is included 
 if the first column of X is a vector of 1s. If Zidx=c(1,2), then the model would estimate the random intercept and the random effects of the 2nd column in the covariate matrix X.
 The random-effects in this model are assumed to be independent.}
-
-\item{id}{a vector for cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.}
 
 \item{maxIter}{the maximum number of iterations for the EM algorithm.}
 
@@ -35,12 +35,13 @@ For an univariate outcome, it should be set as FALSE.}
 \item{verbose}{logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.}
 
 \item{cov_miss}{the covariate that can be used in the missing-data model. If it is NULL, 
-the missingness is assumed to be independent of the covariates.
+ the missingness is assumed to be independent of the covariates.
 Check the Details for the missing-data model.
 If it is specified and the covariate is not outcome specific, its length equals the length of id. If it is outcome specific, the outcome-specific covariate is stacked across outcomes within
 each cluster.}
 
-\item{mnar}{logical. If TRUE, the missing-data mechanism is missing not at random (MNAR), and the missingness depends on the outcome (see the Details). The default is TRUE.}
+\item{miss_y}{logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE.
+This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.}
 
 \item{sigma_diff}{logical. If TRUE, the sample error variance of the first sample is different from that for the rest of samples within each cluster.
 This option is designed and used when analyzing batch-processed proteomics data with the first sample in each cluster/batch being the common reference sample. The default is FALSE.}
@@ -48,22 +49,23 @@ This option is designed and used when analyzing batch-processed proteomics data 
 \value{
 A list containing
 \item{beta}{the estimated fixed-effects.}
-\item{pval}{the parametric p-values for testing non-zero fixed-effects. It is obtained as the two-sided p-value based on the Wald statistics.
-We recommend to obtain the permutation-based p-values by following the Examples.}
-\item{stat}{the parametric Wald statistics for testing non-zero fixed-effects.}
+\item{stat}{the parametric Wald statistics for testing non-zero fixed-effects. It is used in permutation tests.}
 \item{Sigma}{the estimated error covariance matrix for the outcomes.}
 \item{sigma2}{the estimated sample error variance(s). If sigma_diff is TRUE, it returns a vector of two elements,
  the variances for the first sample and the rest of samples within each cluster.}
 \item{D}{the estimated covariance matrix for the random-effects.}
 \item{phi}{the estimated parameters for the missing-data mechanism. Check the Details for the missing-data model. 
-A zero value implies that parameter is ignored via the specification of mnar and cov_miss.}
+A zero value implies that parameter is ignored via the specification of miss_y and cov_miss.}
 \item{loglikelihood}{the observed-data log-likelihood values.}
 \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 \item{AIC}{The Akaike information criterion (AIC) calculated for selecting the tuning parameter lambda of the graphical lasso penalty.}
 }
 \description{
 This function fits a multivariate mixed-effects selection model with correlated outcome-specific error terms and potential missing values in the outcome.
+Here an outcome refers to a response variable, for example, a genomic feature. The proposed model and function jointly analyze multiple outcomes/features.
 For high-dimensional outcomes, the model can regularize the estimation by shrinking the error precision matrix with a graphical lasso penalty.
+Given the introduction of the penalty and the choice of tuning parameter often being data-dependant, we recommend using permutation to calculate
+p-values for testing with the mvMISE_e model. Please see mvMISE_e_perm for calculating the permutation-based p-values.
 }
 \details{
 The multivariate mixed-effects selection model consists of two components, the outcome model and the missing-data model. Here the outcome model 
@@ -71,7 +73,7 @@ is a multivariate mixed-effects model. The correlations among multivariate outco
 For the i-th cluster, the outcome matrix \eqn{\mathbf{Y}_{i}} is a matrix of \eqn{n_i} samples (rows) and \eqn{K} outcomes (columns). 
 Let \eqn{\mathbf{y}_{i} = \mathrm{vec}\left( \mathbf{Y}_{i} \right)}. 
 The outcome vector \eqn{\mathbf{y}_{i}} can be modelled as
-\deqn{\mathbf{y}_{i}  = \mathbf{X}_{i}\boldsymbol{\alpha}+\mathbf{Z}_{i}\mathbf{b}_{i}+\mathbf{e}_{i},}
+\deqn{\mathbf{y}_{i}  = \mathbf{X}_{i}\boldsymbol{\beta}+\mathbf{Z}_{i}\mathbf{b}_{i}+\mathbf{e}_{i},}
 where the random effects (\eqn{\mathbf{b}_{i}}) follow a normal distribution \eqn{\mathbf{b}_{i}\sim N(\mathbf{0},\mathbf{D})}; 
 and the error term \eqn{\mathbf{e}_{i}=\mathrm{vec}\left(\mathbf{E}_{i}\right) \sim N(\mathbf{0},\boldsymbol{\Sigma}\otimes\mathbf{S}_{i})}.  
 The matrix \eqn{\mathbf{S}_{i}} is an \eqn{n_i\times n_i} diagonal matrix with diagonal elements corresponding to the error variances of the \eqn{n_i} samples 
@@ -88,46 +90,54 @@ The missing-data model can be written as
 \phi_{2}/n_{i}\cdot \mathbf{1}^{'}\mathbf{c}_{i} \right),}
 where \eqn{r_{ik}} is the missing indicator for the k-th outcome in the i-th cluster. If missing \eqn{r_{ik}=1}, the k-th outcome in the i-th cluster \eqn{\mathbf{y}_{ik}} 
 is missing altogether.
-The estimation is implemented within an EM algorithm framework. Parameters in the missing-data models can be specified via the arguments mnar and cov_miss. If mnar 
-= TURE, i.e., the missing-data mechanism is missing not at random (MNAR), the missingness depends on the outcome values. 
+The estimation is implemented within an EM algorithm framework. Parameters in the missing-data models can be specified via the arguments miss_y and cov_miss. If miss_y 
+= TURE, the missingness depends on the outcome values. 
 If cov_miss is specified, the missingness can (additionally) depend on the specified covariates (cov_miss).
 
-The model also works for fully observed data if mnar = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
+The model also works for fully observed data if miss_y = FALSE and cov_miss = NULL. It would also work for an univariate outcome with potential missing values, if the outcome Y is a matrix
 with one column.
 }
 \examples{
 data(sim_dat)
 
+# Covariates X common across outcomes with common coefficients
+
 fit0 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id)
 
 \dontrun{
 
-## An example to obtain permutation-based p-values for fixed
-## effects
-
-# it may take a long time, but it can be run in parallel through
-# packages like foreach
-
-nperm = 50
-
-stat0 = sapply(1:nperm, function(x) mvMISE_e(Y = sim_dat$Y, 
-    X = sim_dat$X[sample(nrow(sim_dat$X)), ], id = sim_dat$id)$stat)
-
-pval_perm = sapply(1:length(fit0$stat), function(x) mean(abs(stat0[x, 
-    ]) >= abs(fit0$stat[x])))
-
-
-## An example to allow outcome-specific effects for the last
-## covariate in X
+# In the example below, we showed how to estimate outcome-specific
+# coefficients for a common covariate. The second column of
+# sim_dat$X matrix is a common covariate. But it has different
+# effects/coefficients on different outcomes.
 
 nY = ncol(sim_dat$Y)
 # stack X across outcomes
 X_mat = sim_dat$X[rep(1:nrow(sim_dat$X), nY), ]
+# Y_ind is the indicator matrix corresponding to different outcomes
 Y_ind = kronecker(diag(nY), rep(1, nrow(sim_dat$Y)))
-X_mat = cbind(X_mat[, -ncol(X_mat)], X_mat[, ncol(X_mat)] * 
-    Y_ind)
+# generate outcome-specific covariates
+cidx = 2  # the index for the covariate with outcome-specific coefficient
+X_mat = cbind(1, X_mat[, cidx] * Y_ind)
+
+# X_mat is a matrix of 460 (92*5) by 6, the first column is
+# intercept and the next 5 columns are covariate for each outcome
 
 fit1 = mvMISE_e(Y = sim_dat$Y, X = X_mat, id = sim_dat$id)
+
+
+# A covariate only specific to the first outcome
+
+X_mat1 = X_mat[, 1:2]
+
+fit2 = mvMISE_e(Y = sim_dat$Y, X = X_mat1, id = sim_dat$id)
+
+
+## An example to allow missingness to depend on both a covariate and
+## the outcome
+
+fit3 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id, 
+    cov_miss = sim_dat$X[, 2])
 
 }
 }
