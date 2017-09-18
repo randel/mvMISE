@@ -269,7 +269,7 @@ mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_
                    phi[2] * (sum(E_ymis_yobs) + phi[2] * sum(var_ymis_yobs)/ni[i]/2)/ni[i]))
       
       ## observed-data likelihood (observed y; r)
-      obs_likelihood = obs_likelihood - 0.5 * (ifelse(ncol(Vi_obs) == 0, 0, sum(log(eigen(Vi_obs)$values))) + 
+      obs_likelihood = obs_likelihood - 0.5 * (ifelse(ncol(Vi_obs) == 0, 0, determinant(Vi_obs, logarithm = TRUE)$modulus) + 
                                                  t(y[!miss & id == i] - Xio %*% beta) %*% Vi_obs_inv %*% 
                                                  (y[!miss & id == i] - Xio %*% beta)) + obs_phi
       
