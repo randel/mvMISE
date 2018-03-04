@@ -19,7 +19,7 @@ Description: Offers a general framework of multivariate mixed-effects
         with balanced or unbalanced design and no missingness.
 License: GPL
 Depends:
-    lme4
+    lme4, MASS
 URL: https://github.com/randel/mvMISE
 BugReports: https://github.com/randel/mvMISE/issues
 RoxygenNote: 6.0.1

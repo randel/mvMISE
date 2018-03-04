@@ -301,8 +301,8 @@ mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_
     # make the algorithm stable
     if (miss_y | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
     
-    beta = solve(XRX) %*% XRE
-    tau = solve(ZRZ) %*% ZRE
+    beta = ginv(XRX) %*% XRE
+    tau = ginv(ZRZ) %*% ZRE
     
     SS_s = SS_s0 = 0
     for (i in unique(id)) {
@@ -333,9 +333,9 @@ mvMISE_b = function(Y, X,  id, maxIter = 100, tol = 0.001, verbose = FALSE, cov_
   if (sigma_diff) sigma2 = c(sigma2_0, sigma2)
   
   ## standard errors for fixed-effects
-  se = sqrt(diag(solve(SE)))
+  se = sqrt(diag(ginv(SE)))
   
-  return(list(iter = iter, beta = beta, var = solve(SE), pval = 2*pnorm(-abs(beta/se)), sigma2 = sigma2, 
+  return(list(iter = iter, beta = beta, var = ginv(SE), pval = 2*pnorm(-abs(beta/se)), sigma2 = sigma2, 
               tau = tau, phi = phi, loglikelihood = likelihood[length(likelihood)]))
 }
 

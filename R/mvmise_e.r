@@ -223,14 +223,14 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
       Zi = Xi[, Zidx, drop = F]
       
       Ri = kronecker(Sigma, diag(c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i]))
-      # efficient solve(Ri)
-      Ri_inv = kronecker(solve(Sigma), diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i]))
+      # efficient inverse of Ri
+      Ri_inv = kronecker(ginv(Sigma), diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i]))
       
       Vi = Zi %*% D %*% t(Zi) + Ri
       if (sum(!miss[id == i]) > 0) 
-        Vi_obs_inv = solve(Vi[!miss[id == i], !miss[id == i], drop = F]) else Vi_obs_inv = matrix(0, 0, 0)
+        Vi_obs_inv = ginv(Vi[!miss[id == i], !miss[id == i], drop = F]) else Vi_obs_inv = matrix(0, 0, 0)
       
-      var_b_y[i] = solve(t(Zi) %*% Ri_inv %*% Zi + solve(D))
+      var_b_y[i] = ginv(t(Zi) %*% Ri_inv %*% Zi + ginv(D))
       
       # calculating observed log-likelihood
       obs_phi = 0
@@ -278,7 +278,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
       SE = SE + t(Xio) %*% Vi_obs_inv %*% Xio
     }
     
-    Sigma_inv = solve(Sigma)
+    Sigma_inv = ginv(Sigma)
     # truncated at 1e-5
     AIC = -2 * obs_likelihood + 2 * sum(abs(Sigma_inv[lower.tri(Sigma_inv)]) > 1e-05)
     # penalized log-likelihood
@@ -316,20 +316,20 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
     # make the algorithm stable
     if (D[1] > 1e+05) 
       D = D_old  
-    beta = solve(XRX) %*% XRE
+    beta = ginv(XRX) %*% XRE
     
     # random intercept model
     
     SS_sigma = matrix(0, nY, nY)
     SS_s = SS_s0 = 0
-    Sigma_inv = solve(Sigma)
+    Sigma_inv = ginv(Sigma)
     
     for (i in unique(id)) {
       Si_inv = diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i])
       Xi = X_mat[id == i, , drop = F]
       Zi = matrix(Xi[, Zidx, drop = F], ncol = nY)
-      # efficient solve(Ri)
-      Ri_inv = kronecker(solve(Sigma), diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i]))
+      # efficient inverse of Ri
+      Ri_inv = kronecker(ginv(Sigma), diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i]))
       
       B = diag(ni[i] * nY) - Xi[, Zidx, drop = F] %*% var_b_y[i] %*% 
         t(Xi[, Zidx, drop = F]) %*% Ri_inv
@@ -388,7 +388,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
   if (sigma_diff) sigma2 = c(sigma2_0, sigma2)
   
   ## standard errors for fixed-effects
-  se = sqrt(diag(solve(SE)))
+  se = sqrt(diag(ginv(SE)))
   
   return(list(iter = iter, beta = beta, stat = beta/se, sigma2 = sigma2, 
               Sigma = Sigma, D = D, phi = phi, AIC = AIC, loglikelihood = obs_likelihood))
@@ -435,6 +435,6 @@ admm = function(N, ni, SS_sigma, lambda, rho = 1, maxIter) {
     iter = iter + 1
   }
   
-  return(solve(Theta))
+  return(ginv(Theta))
 }
 
