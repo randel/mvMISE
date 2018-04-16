@@ -38,8 +38,8 @@
 #' @param Y an outcome matrix. Each row is a sample, and each column is an outcome variable, with potential missing values (NAs).
 #' @param X a covariate matrix. Each row is a sample, and each column is a covariate. The covariates can be common among all of the outcomes (e.g., age, gender) or outcome-specific.
 #'    If a covariate is specific for the k-th outcome, one may set all the values corresponding to the other outcomes to be zero. If X is common across outcomes, the row number of X equals 
-#'    the row number of Y. Otherwise if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes within
-#'    each cluster. See the Examples for demonstration.
+#'    the row number of Y. Otherwise if X is outcome-specific, the row number of X equals the number of elements in Y, i.e., outcome-specific X is stacked across outcomes. 
+#'    See the Examples for demonstration.
 #' @param id a vector for cluster/batch index, matching with the rows of Y, and X if it is not outcome specific.
 #' @param Zidx the column indices of matrix X used as the design matrix of random effects. The default is 1, i.e., a random intercept is included 
 #' if the first column of X is a vector of 1s. If Zidx=c(1,2), then the model would estimate the random intercept and the random effects of the 2nd column in the covariate matrix X.
@@ -185,6 +185,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
   vc = as.data.frame(VarCorr(lmefit))
   
   Sigma = diag(nY)
+  Sigma_inv = ginv(Sigma)
   sigma2_0 = sigma2 = vc[vc$grp == "Residual", "vcov"]
   D = diag(vc[vc$grp == "id", "vcov"], length(Zidx))
   if (D == 0) D = 1
@@ -278,7 +279,6 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
       SE = SE + t(Xio) %*% Vi_obs_inv %*% Xio
     }
     
-    Sigma_inv = ginv(Sigma)
     # truncated at 1e-5
     AIC = -2 * obs_likelihood + 2 * sum(abs(Sigma_inv[lower.tri(Sigma_inv)]) > 1e-05)
     # penalized log-likelihood
@@ -322,7 +322,6 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
     
     SS_sigma = matrix(0, nY, nY)
     SS_s = SS_s0 = 0
-    Sigma_inv = ginv(Sigma)
     
     for (i in unique(id)) {
       Si_inv = diag(1/c(sigma2_0, rep(sigma2, ni[i] - 1)), ni[i])
@@ -357,10 +356,12 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
     ### Sigma
     
     if (admm) 
-      Sigma = admm(N, ni, SS_sigma, lambda, rho = 1, maxIter = 500) else {
+      Sigma_inv = admm(N, ni, SS_sigma, lambda, rho = 1, maxIter = 500) else {
         # unpenalized covariance matrix for outcomes
-        Sigma = SS_sigma/sum(ni)
+        Sigma_inv = ginv(SS_sigma/sum(ni))
       }
+    
+    Sigma = ginv(Sigma_inv)
     
     ### sigma
     
@@ -380,7 +381,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.0
     
     if (verbose) {
       print(round(c(iter = iter, logLike_change = likelihood_change, 
-                    beta = beta, sigma2 = sigma2, 
+                    beta = beta[1:2], sigma2 = sigma2, # only print the first two beta's
                     Sigma = mean(diag(Sigma)), D = D, phi = phi), 3))
     }
   }
@@ -423,6 +424,7 @@ admm = function(N, ni, SS_sigma, lambda, rho = 1, maxIter) {
   Theta_old = matrix(100, nY, nY)
   iter = 1
   while (iter < maxIter & sum(abs(Theta_old - Theta))/sum(abs(Theta_old)) >= 1e-05) {
+    Theta_old = Theta
     eigen0 = eigen((N * rho * (U - Z) + SS_sigma)/sum(ni))
     D = sum(ni) * (-eigen0$values + sqrt(eigen0$values^2 + 4 * N * 
                                            rho/sum(ni)))/(2 * N * rho)
@@ -435,6 +437,5 @@ admm = function(N, ni, SS_sigma, lambda, rho = 1, maxIter) {
     iter = iter + 1
   }
   
-  return(ginv(Theta))
+  return(Theta)
 }
-
