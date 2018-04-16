@@ -52,7 +52,7 @@
 #' @param lambda the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output). The default is sqrt(log(ncol(Y))/nrow(Y)).
 #' @param tol the tolerance level for the relative change in the observed-data log-likelihood function.
 #' @param verbose logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.
-#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE if the average missing rate is greater than 5%, otherwise is FALSE.
+#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE if the average missing rate is greater than 5\%, otherwise is FALSE.
 #'      This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.  
 #' @param cov_miss the covariate that can be used in the missing-data model. If it is NULL, 
 #'    the missingness is assumed to be independent of the covariates.
@@ -136,7 +136,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   if(is.null(miss_y)) miss_y = (mean(is.na(Y)) > 0.05)
   
   # check sporadic missingness
-  yi_ls = lapply(unique(id), function(x) Y[id == x,])
+  yi_ls = lapply(unique(id), function(x) Y[id == x,, drop = F])
   yi_mis = t(sapply(yi_ls, function(x) colMeans(is.na(x))))
   miss_s = which(yi_mis>0 & yi_mis<1, arr.ind = T)
   if(length(miss_s) > 0) {

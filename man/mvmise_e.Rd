@@ -40,7 +40,7 @@ Check the Details for the missing-data model.
 If it is specified and the covariate is not outcome specific, its length equals the length of id. If it is outcome specific, the outcome-specific covariate is stacked across outcomes within
 each cluster.}
 
-\item{miss_y}{logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE if the average missing rate is greater than 5%, otherwise is FALSE.
+\item{miss_y}{logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE if the average missing rate is greater than 5\%, otherwise is FALSE.
 This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.}
 
 \item{sigma_diff}{logical. If TRUE, the sample error variance of the first sample is different from that for the rest of samples within each cluster.
