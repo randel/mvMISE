@@ -49,10 +49,10 @@
 #' used to estimate the error precision and the error covariance matrix. If FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
 #' only applicable to low-dimensional multivariate outcomes.
 #' For an univariate outcome, it should be set as FALSE.
-#' @param lambda the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output).
+#' @param lambda the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output). The default is sqrt(log(ncol(Y))/nrow(Y)).
 #' @param tol the tolerance level for the relative change in the observed-data log-likelihood function.
 #' @param verbose logical. If TRUE, the iteration history of each step of the EM algorithm will be printed. The default is FALSE.
-#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE.
+#' @param miss_y logical. If TRUE, the missingness depends on the outcome Y (see the Details). The default is TRUE if the average missing rate is greater than 5%, otherwise is FALSE.
 #'      This outcome-dependent missing data pattern was motivated by and was observed in the mass-spectrometry-based quantitative proteomics data.  
 #' @param cov_miss the covariate that can be used in the missing-data model. If it is NULL, 
 #'    the missingness is assumed to be independent of the covariates.
@@ -124,13 +124,33 @@
 #' }
 
 
-mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = 0.05, 
-                    admm = TRUE, verbose = FALSE, cov_miss = NULL, miss_y = TRUE,
+mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NULL, 
+                    admm = TRUE, verbose = FALSE, cov_miss = NULL, miss_y = NULL,
                     sigma_diff = FALSE) {
   
   N = length(unique(id))  # no. clusters
   nY = ncol(Y) # no. of outcomes
   id = as.character(id) # as names for list/vectors
+  
+  if(is.null(lambda)) lambda = sqrt(log(nY)/nrow(Y))
+  if(is.null(miss_y)) miss_y = (mean(is.na(Y)) > 0.05)
+  
+  # check sporadic missingness
+  yi_ls = lapply(unique(id), function(x) Y[id == x,])
+  yi_mis = t(sapply(yi_ls, function(x) colMeans(is.na(x))))
+  miss_s = which(yi_mis>0 & yi_mis<1, arr.ind = T)
+  if(length(miss_s) > 0) {
+    colnames(miss_s) = c('cluster', 'outcome')
+    print('The following cluster and outcome indices have sporadic missingness. They are imputed with the mean of Y in the corresponding cluster and outcome.')
+    print('If you dislike mean imputation, please impute by yourself and feed mvMISE() without sporadic missing data.')
+    print(miss_s)
+    
+    for(ms in 1:nrow(miss_s)) {
+      yik = Y[id == unique(id)[miss_s[ms,1]], miss_s[ms,2]]
+      yik[is.na(yik)] = mean(yik, na.rm = T)
+      Y[id == unique(id)[miss_s[ms,1]], miss_s[ms,2]] = yik
+    }
+  }
   
   miss_cluster = NULL
   # number of samples within each cluster
