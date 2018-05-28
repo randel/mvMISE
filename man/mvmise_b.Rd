@@ -129,6 +129,5 @@ fit3 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id,
 }
 }
 \references{
-Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. A multivariate mixed-effects selection model framework for 
-labelling-based proteomics data with non-ignorable missingness. (In preparation).
+Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
 }

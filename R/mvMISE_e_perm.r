@@ -29,8 +29,7 @@
 #' 
 #' @return The permutation based p-values for testing if fixed-effects (excluding the intercept) are zeros.
 #' 
-#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. A multivariate mixed-effects selection model framework for 
-#' labelling-based proteomics data with non-ignorable missingness. (In preparation).
+#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
 #' 
 #' @importFrom parallel makeCluster stopCluster parLapply
 #' @export

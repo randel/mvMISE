@@ -75,8 +75,7 @@
 #' \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 #' \item{AIC}{The Akaike information criterion (AIC) calculated for selecting the tuning parameter lambda of the graphical lasso penalty.}
 #' 
-#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. A multivariate mixed-effects selection model framework for 
-#' labelling-based proteomics data with non-ignorable missingness. (In preparation).
+#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
 #' 
 #' @export
 #' @import lme4
@@ -133,7 +132,6 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   id = as.character(id) # as names for list/vectors
   
   if(is.null(lambda)) lambda = sqrt(log(nY)/nrow(Y))
-  if(is.null(miss_y)) miss_y = (mean(is.na(Y)) > 0.05)
   
   # check sporadic missingness
   yi_ls = lapply(unique(id), function(x) Y[id == x,, drop = F])
@@ -151,6 +149,8 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
       Y[id == unique(id)[miss_s[ms,1]], miss_s[ms,2]] = yik
     }
   }
+  
+  if(is.null(miss_y)) miss_y = (mean(is.na(Y)) > 0.05)
   
   miss_cluster = NULL
   # number of samples within each cluster
@@ -185,6 +185,17 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   # if X is not stacked by outcomes, stack it
   if(nrow(X)/nrow(Y) == nY) X_mat = X else X_mat = X[rep(1:nrow(X), nY), ]
   
+  # check ICC (intra-class correlation) for each outcome
+  D0 = sigma20 = NULL
+  for(k in 1:nY) {
+    x = X_mat[1:nrow(Y)+(k-1)*nrow(Y), ]
+    suppressMessages(lmefit <- lmer(Y[,k] ~ -1 + x + (1 | id), REML = F))
+    vc = as.data.frame(VarCorr(lmefit))
+    D0 = c(D0, diag(vc[vc$grp == "id", "vcov"], 1))
+    sigma20 = c(sigma20, vc[vc$grp == "Residual", "vcov"])
+  }
+  icc = D0/(D0+sigma20)
+  
   id = rep(id, nY)
   
   # no. of covariates
@@ -210,6 +221,8 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   D = diag(vc[vc$grp == "id", "vcov"], length(Zidx))
   if (D == 0) D = 1
   beta = fixef(lmefit)
+  
+  if(median(icc) < 0.05) D = 0
   
   # in case fixed-effect model matrix is rank deficient, dropping columns
   if (length(beta) != nX) {
@@ -329,13 +342,14 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     }
     # make the algorithm stable
     if (miss_y | !is.null(cov_miss)) if (mylog$converged) phi[phi_idx] = as.numeric(coef(mylog))
-
+    
     
     D_old = D
     D = (t(E_b_yobs) %*% E_b_yobs + sum(var_b_yobs + var_b_y))/N
     # make the algorithm stable
     if (D[1] > 1e+05) 
       D = D_old  
+    if(median(icc) < 0.05) D = 0
     beta = ginv(XRX) %*% XRE
     
     # random intercept model

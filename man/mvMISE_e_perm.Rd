@@ -59,6 +59,5 @@ pval_perm = mvMISE_e_perm(nperm = 100, Y = sim_dat$Y, X = sim_dat$X, id = sim_da
 }
 }
 \references{
-Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. A multivariate mixed-effects selection model framework for 
-labelling-based proteomics data with non-ignorable missingness. (In preparation).
+Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
 }

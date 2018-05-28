@@ -65,8 +65,7 @@
 #' \item{loglikelihood}{the observed-data log-likelihood values.}
 #' \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 #' 
-#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. A multivariate mixed-effects selection model framework for 
-#' labelling-based proteomics data with non-ignorable missingness. (In preparation).
+#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
 #' 
 #' @export
 #' @import lme4
