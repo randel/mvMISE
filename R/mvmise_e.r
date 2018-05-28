@@ -140,7 +140,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   if(length(miss_s) > 0) {
     colnames(miss_s) = c('cluster', 'outcome')
     print('The following cluster and outcome indices have sporadic missingness. They are imputed with the mean of Y in the corresponding cluster and outcome.')
-    print('If you dislike mean imputation, please impute by yourself and feed mvMISE() without sporadic missing data.')
+    print('If you dislike mean imputation, please impute by yourself and feed mvMISE without sporadic missing data.')
     print(miss_s)
     
     for(ms in 1:nrow(miss_s)) {
