@@ -4,7 +4,7 @@
 \alias{mvMISE_e}
 \title{A multivariate mixed-effects selection model with correlated outcome-specific error terms}
 \usage{
-mvMISE_e(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NULL, admm = TRUE, 
+mvMISE_e(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NULL, ADMM = TRUE, 
     verbose = FALSE, cov_miss = NULL, miss_y = NULL, sigma_diff = FALSE)
 }
 \arguments{
@@ -27,7 +27,7 @@ The random-effects in this model are assumed to be independent.}
 
 \item{lambda}{the tuning parameter for the graphical lasso penalty of the error precision matrix. It can be selected by AIC (an output). The default is sqrt(log(ncol(Y))/nrow(Y)).}
 
-\item{admm}{logical. If TRUE (the default), we impose a L1 graphical lasso penalty on the error precision (inverse of covariance) matrix, and the alternating direction method of multipliers (ADMM) is 
+\item{ADMM}{logical. If TRUE (the default), we impose a L1 graphical lasso penalty on the error precision (inverse of covariance) matrix, and the alternating direction method of multipliers (ADMM) is 
 used to estimate the error precision and the error covariance matrix. If FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
 only applicable to low-dimensional multivariate outcomes.
 For an univariate outcome, it should be set as FALSE.}
@@ -80,9 +80,9 @@ The matrix \eqn{\mathbf{S}_{i}} is an \eqn{n_i\times n_i} diagonal matrix with d
 within the i-th cluster. 
 The variances for the first and other samples can be different if sigma_diff = TRUE. 
 The matrix \eqn{\boldsymbol{\Sigma}} captures the error (or unexplained) covariances among the \eqn{K} outcomes. 
-For high-dimensional outcomes, if admm = TRUE (the default), the off-diagonal elements of the inverse of \eqn{\boldsymbol{\Sigma}} will be shrinked
+For high-dimensional outcomes, if ADMM = TRUE (the default), the off-diagonal elements of the inverse of \eqn{\boldsymbol{\Sigma}} will be shrinked
 by a graphical lasso penalty and the alternating direction method of multipliers (ADMM) is used to estimate \eqn{\boldsymbol{\Sigma}}. 
-If admm = FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
+If ADMM = FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
 only applicable to low-dimensional multivariate outcomes.
 
 The missing-data model can be written as

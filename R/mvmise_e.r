@@ -18,9 +18,9 @@
 #' within the i-th cluster. 
 #' The variances for the first and other samples can be different if sigma_diff = TRUE. 
 #' The matrix \eqn{\boldsymbol{\Sigma}} captures the error (or unexplained) covariances among the \eqn{K} outcomes. 
-#' For high-dimensional outcomes, if admm = TRUE (the default), the off-diagonal elements of the inverse of \eqn{\boldsymbol{\Sigma}} will be shrinked
+#' For high-dimensional outcomes, if ADMM = TRUE (the default), the off-diagonal elements of the inverse of \eqn{\boldsymbol{\Sigma}} will be shrinked
 #' by a graphical lasso penalty and the alternating direction method of multipliers (ADMM) is used to estimate \eqn{\boldsymbol{\Sigma}}. 
-#' If admm = FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
+#' If ADMM = FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
 #' only applicable to low-dimensional multivariate outcomes.
 #' 
 #' The missing-data model can be written as
@@ -45,7 +45,7 @@
 #' if the first column of X is a vector of 1s. If Zidx=c(1,2), then the model would estimate the random intercept and the random effects of the 2nd column in the covariate matrix X.
 #' The random-effects in this model are assumed to be independent.
 #' @param maxIter the maximum number of iterations for the EM algorithm.
-#' @param admm logical. If TRUE (the default), we impose a L1 graphical lasso penalty on the error precision (inverse of covariance) matrix, and the alternating direction method of multipliers (ADMM) is 
+#' @param ADMM logical. If TRUE (the default), we impose a L1 graphical lasso penalty on the error precision (inverse of covariance) matrix, and the alternating direction method of multipliers (ADMM) is 
 #' used to estimate the error precision and the error covariance matrix. If FALSE, no penalty is used to estimate the unstructured error covariance matrix, and that is 
 #' only applicable to low-dimensional multivariate outcomes.
 #' For an univariate outcome, it should be set as FALSE.
@@ -124,7 +124,7 @@
 
 
 mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NULL, 
-                    admm = TRUE, verbose = FALSE, cov_miss = NULL, miss_y = NULL,
+                    ADMM = TRUE, verbose = FALSE, cov_miss = NULL, miss_y = NULL,
                     sigma_diff = FALSE) {
   
   N = length(unique(id))  # no. clusters
@@ -219,10 +219,9 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
   Sigma_inv = ginv(Sigma)
   sigma2_0 = sigma2 = vc[vc$grp == "Residual", "vcov"]
   D = diag(vc[vc$grp == "id", "vcov"], length(Zidx))
-  if (D == 0) D = 1
   beta = fixef(lmefit)
   
-  if(median(icc) < 0.05) D = 0
+  if(median(icc) < 0.05) {D = 0; lambda = lambda * 1.05}
   
   # in case fixed-effect model matrix is rank deficient, dropping columns
   if (length(beta) != nX) {
@@ -248,8 +247,6 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     Y_ik_mean = matrix(NA, N, nY)
     rownames(Y_ik_mean) = unique(id)
     
-    SS_sigma = matrix(0, nY * ni[i], nY * ni[i])
-    
     for (i in unique(id)) {
       Xi = X_mat[id == i, , drop = F]
       Xio = Xi[!miss[id == i], , drop = F]
@@ -265,6 +262,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
         Vi_obs_inv = ginv(Vi[!miss[id == i], !miss[id == i], drop = F]) else Vi_obs_inv = matrix(0, 0, 0)
       
       var_b_y[i] = ginv(t(Zi) %*% Ri_inv %*% Zi + ginv(D))
+      if(median(icc) < 0.05) var_b_y[i] = 0
       
       # calculating observed log-likelihood
       obs_phi = 0
@@ -349,7 +347,6 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     # make the algorithm stable
     if (D[1] > 1e+05) 
       D = D_old  
-    if(median(icc) < 0.05) D = 0
     beta = ginv(XRX) %*% XRE
     
     # random intercept model
@@ -368,7 +365,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
         t(Xi[, Zidx, drop = F]) %*% Ri_inv
       tmp = kpsvd(B %*% var_y_yobs_lis[[i]] %*% t(B), nY, ni[i])
       
-      # for Sigma
+      # for Sigma: old notations
       A0 = matrix(0, nY, nY)
       for (k in 1:length(tmp$d)) A0 = A0 + tmp$d[k] * t(matrix(tmp$u[, k], nY, nY)) * 
         sum(diag(Si_inv %*% matrix(tmp$v[, k], ni[i], ni[i])))
@@ -389,7 +386,7 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     
     ### Sigma
     
-    if (admm) 
+    if (ADMM) 
       Sigma_inv = admm(N, ni, SS_sigma, lambda, rho = 1, maxIter = 500) else {
         # unpenalized covariance matrix for outcomes
         Sigma_inv = ginv(SS_sigma/sum(ni))
@@ -399,6 +396,8 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     
     ### sigma
     
+    sigma2_old = sigma2
+
     if (sigma_diff) {
       
       ### sigma2_0, sigma2
@@ -412,6 +411,9 @@ mvMISE_e = function(Y, X, id, Zidx = 1, maxIter = 100, tol = 0.001, lambda = NUL
     } else {
       sigma2_0 = sigma2 = (SS_s0 + SS_s) / (sum(ni) * nY)
     }
+    
+    # make the algorithm stable
+    if (sigma2 > 1e+05) sigma2 = sigma2_old
     
     if (verbose) {
       print(round(c(iter = iter, logLike_change = likelihood_change, 

@@ -61,7 +61,7 @@ mvMISE_e_perm = function(nperm = 100, nnodes = 2, Y, X, id, Zidx = 1, maxIter = 
   mvMISE_e1 = function(...) mvMISE_e(Y = Y, X = X[sample(nrow(X)),], id = id, Zidx = Zidx, 
                    maxIter = maxIter, tol = tol, lambda = lambda,
                    cov_miss = cov_miss, miss_y = miss_y,
-                   sigma_diff = sigma_diff, admm = TRUE, verbose = FALSE)
+                   sigma_diff = sigma_diff, ADMM = TRUE, verbose = FALSE)
   
   fit0 = parLapply(cl, 1:nperm, mvMISE_e1)
   
