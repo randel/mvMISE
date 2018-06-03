@@ -75,7 +75,7 @@
 #' \item{iter}{the number of iterations for the EM algorithm when reaching the convergence.}
 #' \item{AIC}{The Akaike information criterion (AIC) calculated for selecting the tuning parameter lambda of the graphical lasso penalty.}
 #' 
-#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics (Accepted).
+#' @references Jiebiao Wang, Pei Wang, Donald Hedeker, and Lin S. Chen. Using multivariate mixed-effects selection models for analyzing batch-processed proteomics data with non-ignorable missingness. Biostatistics. doi:10.1093/biostatistics/kxy022
 #' 
 #' @export
 #' @import lme4
