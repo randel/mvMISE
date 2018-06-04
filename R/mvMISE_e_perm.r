@@ -35,7 +35,7 @@
 #' @export
 #' 
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' 
 #' data(sim_dat)
 #' 

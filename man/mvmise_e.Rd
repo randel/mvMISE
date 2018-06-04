@@ -104,7 +104,7 @@ data(sim_dat)
 
 fit0 = mvMISE_e(Y = sim_dat$Y, X = sim_dat$X, id = sim_dat$id)
 
-\dontrun{
+\donttest{
 
 # In the example below, we showed how to estimate outcome-specific
 # coefficients for a common covariate. The second column of

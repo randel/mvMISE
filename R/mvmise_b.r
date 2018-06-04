@@ -77,7 +77,7 @@
 #'
 #' fit0 = mvMISE_b(Y=sim_dat$Y, X=sim_dat$X, id=sim_dat$id)
 #' 
-#' \dontrun{
+#' \donttest{
 #' 
 #' # In the example below, we showed how to estimate outcome-specific coefficients
 #' # for a common covariate. The second column of sim_dat$X matrix is a

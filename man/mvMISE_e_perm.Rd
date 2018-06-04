@@ -51,7 +51,7 @@ This function calls mvMISE_e multiple times by permuting the row index (observat
 It may take a long time to permute high-dimensional outcomes, but can be run in parallel using multiple nodes.
 }
 \examples{
-\dontrun{
+\donttest{
 
 data(sim_dat)
 
